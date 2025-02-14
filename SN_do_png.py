@@ -45,6 +45,12 @@ class Window(tk.Tk):
         self.materialCombo.grid(row=2, column=1, padx=3, pady=3)
         self.materialCombo.bind("<<ComboboxSelected>>", self.generate_png_list)
 
+        self.pasteButton = tk.Button(self.mainframe, text="Wklej", command=self.paste_sn, font=['arial', 13, ''])
+        self.pasteButton.grid(row=5, column=0, padx=3, pady=3)
+
+        self.resetButton = tk.Button(self.mainframe, text="Wyczyść", command=self.reset, font=['arial', 13, ''])
+        self.resetButton.grid(row=5, column=1, padx=3, pady=3)
+
         self.copyButton = tk.Button(self.mainframe, text="Kopiuj", command=self.copy_png, font=['arial', 13, ''])
         self.copyButton.grid(row=5, column=2, padx=3, pady=3)
 
@@ -58,6 +64,7 @@ class Window(tk.Tk):
     def find_materials_and_convert(self, event=None):
         self.sn_dict = self.get_sn_dict()
         if len(self.sn_dict) == 0:
+            self.reset()
             return
         
         self.convert_SN_to_PNG()
@@ -126,7 +133,7 @@ class Window(tk.Tk):
             
             ## Brak DXFa 
             if len(details[sn]) == 0:
-                snImage = '!!! Brak DXF !!!\n'
+                snImage = '!!! Brak DXF !!!'
                 self.pngText.insert(tk.END, snImage+'\n' if len(snImage) <= 25 else snImage[:22]+'...\n')
                 self.pngText.tag_add(sn, f'{line+1}.0', f'{line+1}.end')
                 self.pngText.tag_configure(sn, background='red', foreground='white')
@@ -144,7 +151,7 @@ class Window(tk.Tk):
                     self.pngText.tag_configure(sn, background='#bccc74')
                     self.images.append(snImage)
                     break
-                imageStart = image.replace(' ', '_').split('_')[0] if not image.startswith('SN ') else ' '.join(image.replace(' ', '_').split('_')[0:2])
+                imageStart = image.replace(' ', '_').split('_')[0] if not image.startswith('SN ') else image.replace(' ', '_').split('_')[1]
                 with os.scandir(PNG_PATH) as images:
                     for image_entry in images:
                         if image_entry.is_file() and image_entry.name.startswith(imageStart) and image_entry.name.endswith('.png'):
@@ -193,13 +200,28 @@ class Window(tk.Tk):
             return {}
 
         for index, sn in enumerate(sn_list):
-            sn_list[index] = sn.replace('SN ', '')
+            sn_list[index] = sn.replace('SN ', '').strip()
 
         return sn_list
 
 
     def copy_png(self, event=None):
         pyperclip.copy('\n'.join(self.images))
+
+    def paste_sn(self, event=None):
+        self.reset()
+        self.snText.insert('1.0', pyperclip.paste())
+
+    def reset(self, event=None):
+        self.snText.delete("1.0", tk.END)
+        self.pngText.config(state=tk.NORMAL)
+        self.pngText.delete("1.0", tk.END)
+        self.pngText.config(state=tk.DISABLED)
+        self.materialCombo['values'] = []
+        self.materialCombo.set('')
+        self.warningLabelLower.config(text='')
+        self.warningLabelUpper.config(text='')
+
                         
 
 if __name__ == "__main__":
